@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>2026년 7월 2주 주간업무 대시보드</title>
+<style>
+  :root{
+    --ink:#1f2937;
+    --sub:#6b7280;
+    --faint:#9aa2ad;
+    --line:#e5e8ec;
+    --bg:#f6f7f9;
+    --card:#ffffff;
+    --accent:#3b5580;
+    --accent-soft:#eef2f8;
+    --last-bg:#f4f5f7;
+    --next-bg:#eef3fb;
+    --ok:#7c8591;
+    --prog:#3b5580;
+    --wait:#a6741f;
+    --hold:#a83a3a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Pretendard','Noto Sans KR',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 80px;}
+
+  .now-bar{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:14px;font-size:12.5px;color:var(--sub);font-weight:600;}
+  .now-bar .now-date{color:var(--ink);}
+  .now-bar .now-dot{color:var(--faint);}
+  .now-bar .now-time{color:var(--accent);font-variant-numeric:tabular-nums;}
+
+  /* header */
+  .head-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px;}
+  .title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px;}
+  h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-0.01em;}
+  .sub{color:var(--sub);font-size:13.5px;margin:0;}
+  .head-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .week-tag{font-size:12px;color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:20px;font-weight:600;white-space:nowrap;}
+  .sync-row{display:flex;align-items:center;gap:8px;}
+  .sync-time{font-size:11px;color:var(--faint);}
+  .refresh-btn{font-size:11px;color:var(--accent);background:none;border:1px solid var(--line);border-radius:20px;padding:4px 10px;cursor:pointer;font-weight:600;}
+  .refresh-btn:hover{border-color:var(--accent);}
+  .refresh-btn:disabled{opacity:.5;cursor:default;}
+
+  /* KPI row */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 14px;text-align:center;}
+  .kpi .num{font-size:26px;font-weight:700;color:var(--ink);line-height:1.1;}
+  .kpi .lbl{font-size:11.5px;color:var(--sub);margin-top:6px;font-weight:600;}
+  .kpi.total .num{color:var(--accent);}
+  .kpi.prog .num{color:var(--prog);}
+  .kpi.wait .num{color:var(--wait);}
+
+  /* filter bar */
+  .filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--sub);font-size:12.5px;font-weight:600;
+        padding:7px 14px;border-radius:20px;cursor:pointer;user-select:none;transition:.15s;}
+  .chip:hover{border-color:var(--accent);color:var(--accent);}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+  /* task cards */
+  .flow .box{border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.55;color:var(--ink);font-weight:500;}
+  .flow .box .lbl{display:block;font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.03em;margin-bottom:5px;text-transform:uppercase;}
+  .flow .last{background:#eceef1;border:1px solid #dde0e5;}
+  .flow .next{background:#e3ebf7;border:1px solid #cbdaef;}
+  .flow .arrow{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:14px;}
+  .empty{color:var(--faint);font-style:italic;}
+
+  .dept-section{margin-bottom:32px;}
+  .dept-section:last-child{margin-bottom:0;}
+  .dept-header{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--ink);}
+  .dept-header .dept-name{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;}
+  .dept-header .dept-count{font-size:12px;color:var(--sub);font-weight:600;background:#f0f1f3;padding:2px 10px;border-radius:12px;}
+
+  .owner-group{margin-bottom:14px;}
+  .owner-group:last-child{margin-bottom:0;}
+  .owner-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-left:2px;}
+  .owner-header .owner-name{font-size:13px;font-weight:700;color:var(--accent);}
+  .owner-header .owner-count{font-size:11px;color:var(--faint);font-weight:600;}
+  .owner-header::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  .task{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+  .task[open]{padding-bottom:4px;}
+  .task summary{list-style:none;cursor:pointer;padding:13px 16px;}
+  .task summary::-webkit-details-marker{display:none;}
+  .task-top{display:flex;align-items:center;flex-wrap:wrap;gap:9px;}
+  .task-top .chevron{font-size:11px;color:var(--faint);transition:transform .15s;margin-left:4px;}
+  .task[open] .chevron{transform:rotate(90deg);}
+  .tag{font-size:11px;font-weight:700;color:var(--sub);background:#f0f1f3;padding:3px 9px;border-radius:6px;}
+  .title{font-size:15.5px;font-weight:800;color:var(--ink);flex:1 1 auto;min-width:140px;letter-spacing:-0.01em;}
+  .due{font-size:11.5px;color:var(--faint);margin-left:auto;white-space:nowrap;}
+  .status{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .status.진행중{color:var(--prog);background:#eaf0f9;}
+  .status.완료{color:var(--ok);background:#eef0f2;}
+  .status.확인중,.status.예정{color:var(--wait);background:#faf3e6;}
+  .status.보류{color:var(--hold);background:#fbecec;}
+
+  .task-body{padding:0 16px 16px;}
+  .desc{font-size:14px;color:#3f4654;font-weight:500;margin:0 0 14px;line-height:1.7;white-space:pre-line;padding:12px 14px;background:#fafbfc;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;}
+
+  .state-msg{text-align:center;color:var(--sub);font-size:13px;padding:60px 0;}
+  .state-msg.error{color:var(--hold);}
+
+  @media(max-width:720px){
+    .kpis{grid-template-columns:repeat(3,1fr);}
+    .kpis .kpi:nth-child(4),.kpis .kpi:nth-child(5){grid-column:span 1;}
+    .flow{grid-template-columns:1fr;}
+    .flow .arrow{transform:rotate(90deg);padding:4px 0;}
+    .due{margin-left:0;}
+    .head-row{flex-direction:column;align-items:flex-start;}
+    .head-right{align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="now-bar" id="now-bar"></div>
+
+  <div class="head-row">
+    <div>
+      <div class="title-row">
+        <h1>주간업무 대시보드</h1>
+        <span class="week-tag" id="week-tag">2026년 7월 2주차</span>
+      </div>
+      <p class="sub">지난주 진행 업무와 금주 계획 업무를 한눈에 확인하세요</p>
+    </div>
+    <div class="head-right">
+      <div class="sync-row">
+        <span class="sync-time" id="sync-time"></span>
+        <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()">↻ 새로고침</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi total"><div class="num" id="k-total">-</div><div class="lbl">전체 업무</div></div>
+    <div class="kpi"><div class="num" id="k-done">-</div><div class="lbl">완료</div></div>
+    <div class="kpi prog"><div class="num" id="k-prog">-</div><div class="lbl">진행중</div></div>
+    <div class="kpi wait"><div class="num" id="k-wait">-</div><div class="lbl">예정·확인중</div></div>
+    <div class="kpi"><div class="num" id="k-empty">-</div><div class="lbl">금주계획 미입력</div></div>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div id="list">
+    <div class="state-msg" id="initial-msg">스프레드시트에서 데이터를 불러오는 중...</div>
+  </div>
+
+</div>
+
+<script>
+// ===== 구글 스프레드시트 연동 설정 =====
+const SHEET_ID = '1nLHE0Y6tJftFsJlU9czhd-VWG-HbXEk3ndZslar_jbQ';
+const GID = '0'; // 탭이 여러 개면 각 탭의 gid로 변경
+const HEADER_RANGE = 'B7:L200'; // B7:L7이 헤더, 8행부터 데이터
+const WEEK_LABEL_CELL = 'B1'; // 이 셀에 "2026년 7월 3주차"처럼 입력하면 자동 반영됨
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5분마다 자동 새로고침
+
+async function fetchWeekLabel(){
+  try{
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&range=${WEEK_LABEL_CELL}`;
+    const res = await fetch(url);
+    const text = await res.text();
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+    const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
+    const cell = json.table.rows && json.table.rows[0] && json.table.rows[0].c && json.table.rows[0].c[0];
+    const label = cell ? String(cell.v ?? '').trim() : '';
+    if(label){
+      document.getElementById('week-tag').textContent = label;
+    }
+  }catch(err){
+    console.error('주차 라벨을 불러오지 못했습니다:', err);
+    // 실패해도 기존 HTML에 적힌 기본 텍스트를 그대로 유지
+  }
+}
+
+let tasks = [];
+let active = "전체";
+
+function updateNowBar(){
+  const now = new Date();
+  const weekdays = ['일','월','화','수','목','금','토'];
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  const w = weekdays[now.getDay()];
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  const el = document.getElementById('now-bar');
+  if(el){
+    el.innerHTML = `<span class="now-date">${y}년 ${m}월 ${d}일 (${w})</span><span class="now-dot">·</span><span class="now-time">${hh}:${mm}:${ss}</span>`;
+  }
+}
+updateNowBar();
+setInterval(updateNowBar, 1000);
+
+async function fetchTasksFromSheet(){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&range=${HEADER_RANGE}&headers=1`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('스프레드시트 응답 오류 (' + res.status + ')');
+  const text = await res.text();
+  const jsonStart = text.indexOf('{');
+  const jsonEnd = text.lastIndexOf('}');
+  const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
+
+  const rows = json.table.rows || [];
+  const result = [];
+
+  rows.forEach(r=>{
+    const c = r.c;
+    const get = (i)=>{
+      if(!c || !c[i]) return '';
+      const cell = c[i];
+      return (cell.f !== undefined && cell.f !== null && cell.f !== '') ? cell.f : (cell.v ?? '');
+    };
+    // 열 순서: 부서, 업무구분, 담당자, 업무명, 업무 설명, 세부내용, 지난주 진행내용, 금주 계획, 상태, 마감일, 비고
+    const dept   = String(get(0)).trim();
+    const cat    = String(get(1)).trim();
+    const owner  = String(get(2)).trim();
+    const title  = String(get(3)).trim();
+    const descMain   = String(get(4)).trim();
+    const descDetail = String(get(5)).trim();
+    const last   = String(get(6)).trim();
+    const next   = String(get(7)).trim();
+    const status = String(get(8)).trim();
+    const due    = String(get(9)).trim();
+
+    if(!title) return; // 업무명이 없는 빈 행은 건너뜀
+
+    const cleanText = (s)=> s
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .join('\n');
+
+    const desc = [cleanText(descMain), cleanText(descDetail)].filter(Boolean).join('\n');
+    result.push({dept, cat, owner, title, desc, last, next, status, due});
+  });
+
+  return result;
+}
+
+function renderKpis(){
+  document.getElementById('k-total').textContent = tasks.length;
+  document.getElementById('k-done').textContent = tasks.filter(t=>t.status==='완료').length;
+  document.getElementById('k-prog').textContent = tasks.filter(t=>t.status==='진행중').length;
+  document.getElementById('k-wait').textContent = tasks.filter(t=>t.status==='예정'||t.status==='확인중').length;
+  document.getElementById('k-empty').textContent = tasks.filter(t=>!t.next).length;
+}
+
+function renderFilters(){
+  const statuses = ["전체", ...Array.from(new Set(tasks.map(t=>t.status).filter(Boolean)))];
+  const filterBar = document.getElementById('filters');
+  filterBar.innerHTML = "";
+  statuses.forEach(s=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (s===active ? ' active' : '');
+    chip.textContent = s + (s!=="전체" ? ` (${tasks.filter(t=>t.status===s).length})` : ` (${tasks.length})`);
+    chip.onclick = ()=>{ active = s; renderFilters(); renderList(); };
+    filterBar.appendChild(chip);
+  });
+}
+
+function renderList(){
+  const list = document.getElementById('list');
+  list.innerHTML = "";
+  const shown = tasks.filter(t=> active==="전체" || t.status===active);
+
+  if(shown.length === 0){
+    list.innerHTML = '<div class="state-msg">표시할 업무가 없습니다.</div>';
+    return;
+  }
+
+  // 부서별로 그룹화. DEPT_ORDER에 지정된 순서 우선, 나머지는 등장 순서대로 뒤에 붙임
+  const DEPT_ORDER = ['인사', '총무'];
+  const deptGroups = new Map();
+  shown.forEach(t=>{
+    const key = t.dept || '기타';
+    if(!deptGroups.has(key)) deptGroups.set(key, []);
+    deptGroups.get(key).push(t);
+  });
+
+  const deptKeys = Array.from(deptGroups.keys()).sort((a, b)=>{
+    const ia = DEPT_ORDER.indexOf(a);
+    const ib = DEPT_ORDER.indexOf(b);
+    if(ia === -1 && ib === -1) return 0;
+    if(ia === -1) return 1;
+    if(ib === -1) return -1;
+    return ia - ib;
+  });
+
+  deptKeys.forEach(deptKey=>{
+    const items = deptGroups.get(deptKey);
+
+    const section = document.createElement('div');
+    section.className = 'dept-section';
+    section.innerHTML = `
+      <div class="dept-header">
+        <span class="dept-name">${deptKey}</span>
+        <span class="dept-count">${items.length}건</span>
+      </div>`;
+
+    // 담당자별로 그룹화 (등장 순서 유지)
+    const ownerGroups = new Map();
+    items.forEach(t=>{
+      const key = t.owner || '미지정';
+      if(!ownerGroups.has(key)) ownerGroups.set(key, []);
+      ownerGroups.get(key).push(t);
+    });
+
+    ownerGroups.forEach((ownerItems, ownerName)=>{
+      const ownerBlock = document.createElement('div');
+      ownerBlock.className = 'owner-group';
+      ownerBlock.innerHTML = `
+        <div class="owner-header">
+          <span class="owner-name">${ownerName}</span>
+          <span class="owner-count">${ownerItems.length}건</span>
+        </div>`;
+
+      ownerItems.forEach(t=>{
+        const el = document.createElement('details');
+        el.className = 'task';
+        const statusClass = (t.status || '').replace(/[^\p{L}\p{N}]/gu, '');
+        el.innerHTML = `
+          <summary>
+            <div class="task-top">
+              <span class="tag">${t.cat}</span>
+              <span class="title">${t.title}</span>
+              <span class="status ${statusClass}">${t.status || '-'}</span>
+              <span class="due">마감 ${t.due || '-'}</span>
+              <span class="chevron">▶</span>
+            </div>
+          </summary>
+          <div class="task-body">
+            ${t.desc ? `<div class="desc">${t.desc}</div>` : ""}
+            <div class="flow">
+              <div class="box last"><span class="lbl">지난주 진행</span>${t.last ? t.last : '<span class="empty">지난주 진행 내용 없음</span>'}</div>
+              <div class="arrow">→</div>
+              <div class="box next"><span class="lbl">금주 계획</span>${t.next ? t.next : '<span class="empty">금주 계획 미입력</span>'}</div>
+            </div>
+          </div>`;
+        ownerBlock.appendChild(el);
+      });
+
+      section.appendChild(ownerBlock);
+    });
+
+    list.appendChild(section);
+  });
+}
+
+function updateSyncTime(){
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('sync-time').textContent = `마지막 업데이트 ${hh}:${mm}`;
+}
+
+async function loadAndRender(){
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  try{
+    const [taskResult] = await Promise.all([fetchTasksFromSheet(), fetchWeekLabel()]);
+    tasks = taskResult;
+    renderKpis();
+    renderFilters();
+    renderList();
+    updateSyncTime();
+  }catch(err){
+    document.getElementById('list').innerHTML =
+      `<div class="state-msg error">데이터를 불러오지 못했습니다.<br>스프레드시트 공유 설정("링크가 있는 모든 사용자" 뷰어)을 확인해 주세요.<br><small>${err.message}</small></div>`;
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function manualRefresh(){
+  loadAndRender();
+}
+
+loadAndRender();
+setInterval(loadAndRender, AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
