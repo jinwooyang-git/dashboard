@@ -89,13 +89,13 @@
   .task[open]{padding-bottom:4px;}
   .task summary{list-style:none;cursor:pointer;padding:13px 16px;}
   .task summary::-webkit-details-marker{display:none;}
-  .task-top{display:flex;align-items:center;flex-wrap:wrap;gap:9px;}
-  .task-top .chevron{font-size:11px;color:var(--faint);transition:transform .15s;margin-left:4px;}
+  .task-top{display:grid;grid-template-columns:auto minmax(0,1fr) 90px 78px 14px;align-items:center;column-gap:10px;}
+  .task-top .chevron{font-size:11px;color:var(--faint);transition:transform .15s;justify-self:end;}
   .task[open] .chevron{transform:rotate(90deg);}
-  .tag{font-size:11px;font-weight:700;color:var(--sub);background:#f0f1f3;padding:3px 9px;border-radius:6px;}
-  .title{font-size:15.5px;font-weight:800;color:var(--ink);flex:1 1 auto;min-width:140px;letter-spacing:-0.01em;}
-  .due{font-size:11.5px;color:var(--faint);margin-left:auto;white-space:nowrap;}
-  .status{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .tag{font-size:11px;font-weight:700;color:var(--sub);background:#f0f1f3;padding:3px 9px;border-radius:6px;white-space:nowrap;justify-self:start;}
+  .title{font-size:15.5px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .due{font-size:11.5px;color:var(--faint);white-space:nowrap;text-align:right;justify-self:end;}
+  .status{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;text-align:center;justify-self:end;white-space:nowrap;}
   .status.진행중{color:var(--prog);background:#eaf0f9;}
   .status.완료{color:var(--ok);background:#eef0f2;}
   .status.확인중,.status.예정{color:var(--wait);background:#faf3e6;}
@@ -112,9 +112,19 @@
     .kpis .kpi:nth-child(4),.kpis .kpi:nth-child(5){grid-column:span 1;}
     .flow{grid-template-columns:1fr;}
     .flow .arrow{transform:rotate(90deg);padding:4px 0;}
-    .due{margin-left:0;}
     .head-row{flex-direction:column;align-items:flex-start;}
     .head-right{align-items:flex-start;}
+    .task-top{
+      display:grid;
+      grid-template-columns:1fr auto;
+      grid-template-areas:"tag chevron" "title title" "status due";
+      row-gap:6px;column-gap:8px;
+    }
+    .task-top .tag{grid-area:tag;justify-self:start;}
+    .task-top .chevron{grid-area:chevron;justify-self:end;}
+    .task-top .title{grid-area:title;white-space:normal;overflow:visible;text-overflow:clip;}
+    .task-top .status{grid-area:status;justify-self:start;}
+    .task-top .due{grid-area:due;justify-self:end;}
   }
 </style>
 </head>
