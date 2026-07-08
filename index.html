@@ -41,12 +41,24 @@
   h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-0.01em;}
   .sub{color:var(--sub);font-size:13.5px;margin:0;}
   .head-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+  .week-tag-row{display:flex;align-items:center;gap:8px;}
   .week-tag{font-size:12px;color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:20px;font-weight:600;white-space:nowrap;}
+  .archive-badge{font-size:11px;color:var(--hold);background:#fbecec;padding:4px 10px;border-radius:20px;font-weight:700;white-space:nowrap;display:none;}
+  .archive-badge.show{display:inline-block;}
+  .week-select{font-size:11px;color:var(--sub);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 8px;cursor:pointer;}
   .sync-row{display:flex;align-items:center;gap:8px;}
   .sync-time{font-size:11px;color:var(--faint);}
   .refresh-btn{font-size:11px;color:var(--accent);background:none;border:1px solid var(--line);border-radius:20px;padding:4px 10px;cursor:pointer;font-weight:600;}
   .refresh-btn:hover{border-color:var(--accent);}
   .refresh-btn:disabled{opacity:.5;cursor:default;}
+
+  .search-row{margin-bottom:14px;position:relative;}
+  .search-input{width:100%;font-size:13.5px;padding:11px 40px 11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);}
+  .search-input:focus{outline:none;border-color:var(--accent);}
+  .search-input::placeholder{color:var(--faint);}
+  .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--faint);font-size:16px;cursor:pointer;padding:4px 6px;display:none;line-height:1;}
+  .search-clear.show{display:block;}
+  .search-clear:hover{color:var(--hold);}
 
   /* KPI row */
   .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
@@ -58,12 +70,15 @@
   .kpi.wait .num{color:var(--wait);}
 
   /* filter bar */
-  .filters-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
-  .filters{display:flex;gap:8px;flex-wrap:wrap;}
+  .filters-row{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+  .filter-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .filter-label{font-size:11.5px;color:var(--faint);font-weight:700;white-space:nowrap;min-width:38px;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;flex:1;}
   .chip{border:1px solid var(--line);background:var(--card);color:var(--sub);font-size:12.5px;font-weight:600;
         padding:7px 14px;border-radius:20px;cursor:pointer;user-select:none;transition:.15s;}
   .chip:hover{border-color:var(--accent);color:var(--accent);}
   .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .owner-chip.active{background:var(--accent);border-color:var(--accent);}
   .toggle-all-btn{font-size:12.5px;color:var(--accent);background:var(--accent-soft);border:1px solid transparent;border-radius:20px;padding:7px 14px;cursor:pointer;font-weight:600;white-space:nowrap;}
   .toggle-all-btn:hover{border-color:var(--accent);}
 
@@ -74,6 +89,7 @@
   .flow .next{background:#e3ebf7;border:1px solid #cbdaef;}
   .flow .arrow{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:14px;}
   .empty{color:var(--faint);font-style:italic;}
+  mark{background:#fde9a8;color:inherit;border-radius:3px;padding:0 1px;}
 
   .dept-section{margin-bottom:32px;}
   .dept-section:last-child{margin-bottom:0;}
@@ -141,10 +157,12 @@
       <div class="title-row">
         <h1>주간업무 대시보드</h1>
         <span class="week-tag" id="week-tag">2026년 7월 2주차</span>
+        <span class="archive-badge" id="archive-badge">지난 기록 · 읽기전용</span>
       </div>
       <p class="sub">지난주 진행 업무와 금주 계획 업무를 한눈에 확인하세요</p>
     </div>
     <div class="head-right">
+      <select class="week-select" id="week-select" onchange="onWeekChange()"></select>
       <div class="sync-row">
         <span class="sync-time" id="sync-time"></span>
         <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()">↻ 새로고침</button>
@@ -160,9 +178,21 @@
     <div class="kpi"><div class="num" id="k-empty">-</div><div class="lbl">금주계획 미입력</div></div>
   </div>
 
+  <div class="search-row">
+    <input type="text" class="search-input" id="search-input" placeholder="업무명 또는 담당자로 검색..." oninput="onSearchInput()">
+    <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+  </div>
+
   <div class="filters-row">
-    <div class="filters" id="filters"></div>
-    <button class="toggle-all-btn" id="toggle-all-btn" onclick="toggleAll()">전체 펼치기</button>
+    <div class="filter-line">
+      <span class="filter-label">상태</span>
+      <div class="filters" id="filters"></div>
+      <button class="toggle-all-btn" id="toggle-all-btn" onclick="toggleAll()">전체 펼치기</button>
+    </div>
+    <div class="filter-line">
+      <span class="filter-label">담당자</span>
+      <div class="filters" id="owner-filters"></div>
+    </div>
   </div>
 
   <div id="list">
@@ -174,14 +204,26 @@
 <script>
 // ===== 구글 스프레드시트 연동 설정 =====
 const SHEET_ID = '1nLHE0Y6tJftFsJlU9czhd-VWG-HbXEk3ndZslar_jbQ';
-const GID = '0'; // 탭이 여러 개면 각 탭의 gid로 변경
 const HEADER_RANGE = 'B7:L200'; // B7:L7이 헤더, 8행부터 데이터
 const WEEK_LABEL_CELL = 'B1'; // 이 셀에 "2026년 7월 3주차"처럼 입력하면 자동 반영됨
-const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5분마다 자동 새로고침
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5분마다 자동 새로고침 (최신 주차에서만 동작)
 
-async function fetchWeekLabel(){
+// ===== 지난 주차 아카이브 설정 =====
+// 스프레드시트 안에 주차별로 탭(시트)을 만들어두고, 각 탭의 gid를 아래에 추가하면
+// 상단 드롭다운에서 해당 주차 데이터를 그대로 불러와 볼 수 있습니다.
+// 배열의 첫 번째 항목이 "이번 주(최신)"로 취급되어 자동 새로고침이 적용됩니다.
+// gid는 구글시트 탭을 열었을 때 주소창의 '#gid=숫자' 부분에서 확인할 수 있습니다.
+const WEEKS = [
+  { gid: '0', label: '2026년 7월 2주차 (이번 주)' },
+  // { gid: '123456789', label: '2026년 7월 1주차' },
+  // { gid: '987654321', label: '2026년 6월 4주차' },
+];
+
+let CURRENT_WEEK_INDEX = 0;
+
+async function fetchWeekLabel(gid){
   try{
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&range=${WEEK_LABEL_CELL}`;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&range=${WEEK_LABEL_CELL}`;
     const res = await fetch(url);
     const text = await res.text();
     const jsonStart = text.indexOf('{');
@@ -194,12 +236,15 @@ async function fetchWeekLabel(){
     }
   }catch(err){
     console.error('주차 라벨을 불러오지 못했습니다:', err);
-    // 실패해도 기존 HTML에 적힌 기본 텍스트를 그대로 유지
+    // 실패해도 기존 라벨을 그대로 유지
   }
 }
 
 let tasks = [];
-let active = "전체";
+let activeStatus = "전체";
+let activeOwner = "전체";
+let searchText = "";
+let searchDebounceTimer = null;
 
 function updateNowBar(){
   const now = new Date();
@@ -219,8 +264,40 @@ function updateNowBar(){
 updateNowBar();
 setInterval(updateNowBar, 1000);
 
-async function fetchTasksFromSheet(){
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}&range=${HEADER_RANGE}&headers=1`;
+function initWeekSelect(){
+  const sel = document.getElementById('week-select');
+  sel.innerHTML = "";
+  WEEKS.forEach((w, i)=>{
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = w.label;
+    sel.appendChild(opt);
+  });
+  sel.value = String(CURRENT_WEEK_INDEX);
+}
+
+function onWeekChange(){
+  const sel = document.getElementById('week-select');
+  CURRENT_WEEK_INDEX = Number(sel.value);
+  // 주차를 바꾸면 검색/필터 상태는 초기화해서 혼동을 방지
+  activeStatus = "전체";
+  activeOwner = "전체";
+  searchText = "";
+  const input = document.getElementById('search-input');
+  if(input) input.value = "";
+  loadAndRender();
+}
+
+function currentGid(){
+  return WEEKS[CURRENT_WEEK_INDEX].gid;
+}
+
+function isArchiveWeek(){
+  return CURRENT_WEEK_INDEX !== 0;
+}
+
+async function fetchTasksFromSheet(gid){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&range=${HEADER_RANGE}&headers=1`;
   const res = await fetch(url);
   if(!res.ok) throw new Error('스프레드시트 응답 오류 (' + res.status + ')');
   const text = await res.text();
@@ -279,20 +356,84 @@ function renderFilters(){
   filterBar.innerHTML = "";
   statuses.forEach(s=>{
     const chip = document.createElement('div');
-    chip.className = 'chip' + (s===active ? ' active' : '');
+    chip.className = 'chip' + (s===activeStatus ? ' active' : '');
     chip.textContent = s + (s!=="전체" ? ` (${tasks.filter(t=>t.status===s).length})` : ` (${tasks.length})`);
-    chip.onclick = ()=>{ active = s; renderFilters(); renderList(); };
+    chip.onclick = ()=>{ activeStatus = s; renderFilters(); renderOwnerFilters(); renderList(); };
     filterBar.appendChild(chip);
   });
+}
+
+function renderOwnerFilters(){
+  // 담당자 목록은 현재 선택된 상태 필터를 반영해 등장 순서대로 구성
+  const statusScoped = tasks.filter(t => activeStatus==="전체" || t.status===activeStatus);
+  const owners = ["전체", ...Array.from(new Set(statusScoped.map(t=>t.owner || '미지정').filter(Boolean)))];
+  const bar = document.getElementById('owner-filters');
+  bar.innerHTML = "";
+
+  // 이전에 선택한 담당자가 더 이상 목록에 없으면 전체로 리셋
+  if(!owners.includes(activeOwner)) activeOwner = "전체";
+
+  owners.forEach(o=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip owner-chip' + (o===activeOwner ? ' active' : '');
+    const count = o==="전체" ? statusScoped.length : statusScoped.filter(t=>(t.owner || '미지정')===o).length;
+    chip.textContent = o + ` (${count})`;
+    chip.onclick = ()=>{ activeOwner = o; renderOwnerFilters(); renderList(); };
+    bar.appendChild(chip);
+  });
+}
+
+function escapeRegExp(s){
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlight(text, term){
+  if(!term) return text;
+  try{
+    const re = new RegExp('(' + escapeRegExp(term) + ')', 'gi');
+    return text.replace(re, '<mark>$1</mark>');
+  }catch(e){
+    return text;
+  }
+}
+
+function matchesSearch(t, term){
+  if(!term) return true;
+  const q = term.toLowerCase();
+  return t.title.toLowerCase().includes(q) || (t.owner || '').toLowerCase().includes(q);
+}
+
+function onSearchInput(){
+  const val = document.getElementById('search-input').value;
+  document.getElementById('search-clear').classList.toggle('show', val.length > 0);
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(()=>{
+    searchText = val.trim();
+    renderList();
+  }, 150);
+}
+
+function clearSearch(){
+  const input = document.getElementById('search-input');
+  input.value = "";
+  searchText = "";
+  document.getElementById('search-clear').classList.remove('show');
+  input.focus();
+  renderList();
 }
 
 function renderList(){
   const list = document.getElementById('list');
   list.innerHTML = "";
-  const shown = tasks.filter(t=> active==="전체" || t.status===active);
+  const term = searchText;
+  const shown = tasks.filter(t=>
+    (activeStatus==="전체" || t.status===activeStatus) &&
+    (activeOwner==="전체" || (t.owner || '미지정')===activeOwner) &&
+    matchesSearch(t, term)
+  );
 
   if(shown.length === 0){
-    list.innerHTML = '<div class="state-msg">표시할 업무가 없습니다.</div>';
+    list.innerHTML = `<div class="state-msg">${term ? '검색 결과가 없습니다.' : '표시할 업무가 없습니다.'}</div>`;
     return;
   }
 
@@ -338,19 +479,23 @@ function renderList(){
       ownerBlock.className = 'owner-group';
       ownerBlock.innerHTML = `
         <div class="owner-header">
-          <span class="owner-name">${ownerName}</span>
+          <span class="owner-name">${highlight(ownerName, term)}</span>
           <span class="owner-count">${ownerItems.length}건</span>
         </div>`;
 
       ownerItems.forEach(t=>{
         const el = document.createElement('details');
         el.className = 'task';
+        // 검색어로 찾은 카드는 펼쳐서 바로 보이게 함
+        if(term && (t.title.toLowerCase().includes(term.toLowerCase()) || (t.owner||'').toLowerCase().includes(term.toLowerCase()))){
+          el.open = true;
+        }
         const statusClass = (t.status || '').replace(/[^\p{L}\p{N}]/gu, '');
         el.innerHTML = `
           <summary>
             <div class="task-top">
               <span class="tag">${t.cat}</span>
-              <span class="title">${t.title}</span>
+              <span class="title">${highlight(t.title, term)}</span>
               <span class="status ${statusClass}">${t.status || '-'}</span>
               <span class="due">마감 ${t.due || '-'}</span>
               <span class="chevron">▶</span>
@@ -380,17 +525,26 @@ function updateSyncTime(){
   const now = new Date();
   const hh = String(now.getHours()).padStart(2,'0');
   const mm = String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('sync-time').textContent = `마지막 업데이트 ${hh}:${mm}`;
+  if(isArchiveWeek()){
+    document.getElementById('sync-time').textContent = `아카이브 보기 · ${hh}:${mm} 조회`;
+  }else{
+    document.getElementById('sync-time').textContent = `마지막 업데이트 ${hh}:${mm}`;
+  }
 }
+
+let autoRefreshTimer = null;
 
 async function loadAndRender(){
   const btn = document.getElementById('refresh-btn');
   btn.disabled = true;
+  document.getElementById('archive-badge').classList.toggle('show', isArchiveWeek());
   try{
-    const [taskResult] = await Promise.all([fetchTasksFromSheet(), fetchWeekLabel()]);
+    const gid = currentGid();
+    const [taskResult] = await Promise.all([fetchTasksFromSheet(gid), fetchWeekLabel(gid)]);
     tasks = taskResult;
     renderKpis();
     renderFilters();
+    renderOwnerFilters();
     renderList();
     updateSyncTime();
   }catch(err){
@@ -399,6 +553,12 @@ async function loadAndRender(){
     console.error(err);
   }finally{
     btn.disabled = false;
+  }
+
+  // 자동 새로고침은 "이번 주" 탭에서만 동작 (지난 주차 아카이브는 고정된 기록이므로 갱신하지 않음)
+  clearInterval(autoRefreshTimer);
+  if(!isArchiveWeek()){
+    autoRefreshTimer = setInterval(loadAndRender, AUTO_REFRESH_MS);
   }
 }
 
@@ -429,8 +589,8 @@ document.getElementById('list').addEventListener('toggle', (e)=>{
   }
 }, true);
 
+initWeekSelect();
 loadAndRender();
-setInterval(loadAndRender, AUTO_REFRESH_MS);
 </script>
 </body>
 </html>
